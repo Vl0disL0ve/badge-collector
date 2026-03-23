@@ -1,0 +1,70 @@
+@startuml
+left to right direction
+
+title Диаграмма архитектуры решений (Solution Architecture)
+
+package "Клиентский уровень" {
+  [Веб-браузер] as Browser
+  [Telegram-клиент] as TGClient
+}
+
+node "Веб-сервер (Nginx)" as Nginx {
+  [Статика (HTML/CSS/JS)] as Static
+}
+
+node "Сервер приложений (Application Server)" as AppServer {
+  database "PostgreSQL\n(Основные данные)" as Postgres
+  folder "Файловое хранилище\n(изображения)" as Storage
+  
+  component "API Gateway\n(FastAPI)" as API
+    
+  component "Модуль аутентификации" as Auth
+  component "Модуль коллекций" as Collection
+  component "Модуль категорий/наборов" as Catalog
+  component "Модуль поиска" as Search
+  component "Модуль экспорта" as Export
+  component "Модуль обработки фото" as ImageProc
+  
+  component "Telegram Bot Handler\n(python-telegram-bot)" as BotHandler
+}
+
+node "Внешние сервисы" as External {
+  [Telegram API] as TelegramAPI
+}
+
+' === СВЯЗИ ===
+Browser --> Nginx : HTTP/HTTPS
+Nginx --> API : проксирование API-запросов
+Browser --> Static : загрузка статики
+
+TGClient --> TelegramAPI : сообщения пользователя
+TelegramAPI --> BotHandler : webhook/long polling
+
+BotHandler --> API : внутренние HTTP-запросы
+
+API --> Auth : вызов
+API --> Collection : вызов  
+API --> Catalog : вызов
+API --> Search : вызов
+API --> Export : вызов
+
+Collection --> Postgres : SQL
+Auth --> Postgres : SQL
+Catalog --> Postgres : SQL
+Search --> Postgres : SQL
+Export --> Postgres : SQL
+Export --> Storage : чтение фото
+
+Collection --> ImageProc : при загрузке
+ImageProc --> Storage : сохранение
+Collection --> Storage : чтение фото
+
+' === ЦВЕТОВЫЕ ГРУППЫ ===
+skinparam component {
+  BackgroundColor<<клиент>> LightBlue
+  BackgroundColor<<сервер>> LightGreen
+  BackgroundColor<<база>> LightCoral
+  BackgroundColor<<внешнее>> LightYellow
+}
+
+@enduml
