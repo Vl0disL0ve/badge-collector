@@ -1,0 +1,56 @@
+@startuml
+left to right direction
+
+title Диаграмма компонентов - Логическая структура
+
+package "Клиентская часть" {
+  [Веб-интерфейс (SPA)] <<React/Vue/HTML+JS>>
+  [Telegram-клиент] <<Telegram Bot API>>
+}
+
+package "Серверная часть (Backend)" {
+  [API Gateway] <<REST API>>
+  
+  database "Реляционная БД" {
+    folder "PostgreSQL" as DB
+  }
+  
+  [Модуль аутентификации] <<FastAPI>>
+  [Модуль управления коллекцией] <<FastAPI>>
+  [Модуль обработки изображений] <<Pillow/OpenCV>>
+  [Модуль Telegram-бота] <<python-telegram-bot>>
+  [Модуль экспорта] <<PIL>>
+}
+
+package "Внешние сервисы" {
+  [Telegram API] <<External>>
+  [Файловое хранилище] <<Local/S3>>
+}
+
+' === СВЯЗИ ===
+[Веб-интерфейс] --> [API Gateway] : HTTP/JSON
+[Telegram-клиент] --> [Модуль Telegram-бота] : Webhook/Polling
+
+[API Gateway] --> [Модуль аутентификации]
+[API Gateway] --> [Модуль управления коллекцией]
+
+[Модуль управления коллекцией] --> DB : SQL
+[Модуль аутентификации] --> DB : SQL
+[Модуль Telegram-бота] --> DB : SQL
+[Модуль Telegram-бота] --> [Модуль управления коллекцией] : внутренний вызов
+
+[Модуль управления коллекцией] --> [Модуль обработки изображений] : при загрузке фото
+[Модуль управления коллекцией] --> [Модуль экспорта] : при экспорте
+[Модуль обработки изображений] --> [Файловое хранилище] : save/load
+[Модуль Telegram-бота] --> [Telegram API] : sendMessage/sendPhoto
+
+' === ЛЕГЕНДА ===
+legend right
+  |= Компонент |= Описание |
+  |<back:#F0F0F0>   </back>| Клиентские приложения |
+  |<back:#E6F3FF>   </back>| Серверные компоненты |
+  |<back:#FFFFCC>   </back>| База данных |
+  |<back:#FFE6E6>   </back>| Внешние сервисы |
+endlegend
+
+@enduml
