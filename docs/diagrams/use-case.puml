@@ -1,0 +1,61 @@
+@startuml
+skinparam actorStyle awesome
+left to right direction
+title Диаграмма прецедентов
+
+' === АКТЕРЫ ===
+actor "Гость" as Guest
+actor "Коллекционер" as User
+actor "Администратор" as Admin
+
+' === ГРУППЫ ПО ТИПАМ ДЕЙСТВИЙ ===
+
+rectangle "1. Регистрация и аккаунт" {
+  usecase "Зарегистрироваться" as UC1
+  usecase "Авторизоваться" as UC2
+  usecase "Привязать Telegram аккаунт" as UC3
+}
+
+rectangle "2. Управление коллекцией" {
+  usecase "Добавить значок" as UC4
+  usecase "Редактировать/удалить значок" as UC5
+  usecase "Редактировать фото" as UC6
+  usecase "Просмотр/поиск" as UC7
+  usecase "Экспорт в изображение" as UC8
+  usecase "Просмотр категорий" as UC9
+  usecase "Просмотр наборов" as UC10
+}
+
+rectangle "3. Быстрые операции (Telegram-бот)" {
+  usecase "Быстрое добавление" as UC11
+  usecase "Поиск в боте" as UC12
+  usecase "Просмотр статистики" as UC13
+}
+
+rectangle "4. Администрирование" {
+  usecase "Управление категориями (CRUD)" as UC14
+  usecase "Управление наборами (CRUD)" as UC15
+  usecase "Модерация фото" as UC16
+}
+
+' === СВЯЗИ ===
+Guest --> UC1
+Guest --> UC2
+
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+User --> UC10
+User --> UC11
+User --> UC12
+User --> UC13
+
+Admin --> UC14
+Admin --> UC15
+Admin --> UC16
+
+@enduml
