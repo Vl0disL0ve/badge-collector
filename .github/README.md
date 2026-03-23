@@ -1,1 +1,1 @@
-docs/technical-specification/README.md
+../docs/technical-specification/README.md
