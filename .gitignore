@@ -1,0 +1,7 @@
+﻿.env
+backend/uploads/
+backend/badge_collector.db
+__pycache__/
+*.pyc
+venv/
+.venv/

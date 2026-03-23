@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Значок — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">Коллекция</a>
+                <a href="add-badge.html">➕ Добавить значок</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="badgeDetail" class="badge-detail">
+            <div class="loading">Загрузка...</div>
+        </div>
+    </main>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const badgeId = urlParams.get('id');
+        
+        const conditionMap = {
+            excellent: 'Отличное',
+            good: 'Хорошее',
+            average: 'Среднее',
+            poor: 'Плохое',
+        };
+        
+        async function loadBadgeDetail() {
+            if (!badgeId) {
+                document.getElementById('badgeDetail').innerHTML = '<div class="error">ID значка не указан</div>';
+                return;
+            }
+            
+            try {
+                const badge = await getBadge(badgeId);
+                renderBadgeDetail(badge);
+            } catch (error) {
+                document.getElementById('badgeDetail').innerHTML = `<div class="error">Ошибка: ${error.message}</div>`;
+            }
+        }
+        
+        function renderBadgeDetail(badge) {
+            const photoUrl = badge.photo_url ? `http://localhost:8000${badge.photo_url}` : null;
+            
+            const html = `
+                <div class="detail-header">
+                    <h2>${escapeHtml(badge.name)}</h2>
+                    <div class="detail-actions">
+                        <button id="deleteBtn" class="btn-danger">🗑️ Удалить</button>
+                    </div>
+                </div>
+                
+                <div class="detail-content">
+                    <div class="detail-main-photo">
+                        ${photoUrl ? `<img src="${photoUrl}" alt="${badge.name}">` : '<div class="no-photo">🏷️ Нет фото</div>'}
+                    </div>
+                    
+                    <div class="detail-info">
+                        <div class="info-row">
+                            <span class="info-label">Название:</span>
+                            <span class="info-value">${escapeHtml(badge.name)}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">ID:</span>
+                            <span class="info-value">${badge.id}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('badgeDetail').innerHTML = html;
+            
+            document.getElementById('deleteBtn').addEventListener('click', async () => {
+                if (confirm('Удалить этот значок?')) {
+                    await deleteBadge(badgeId);
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+        
+        checkAuth().then(loadBadgeDetail);
+    </script>
+</body>
+</html>
