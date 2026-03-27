@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Категории — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html" class="active">📁 Коллекция</a>
+                <a href="add-badge.html">➕ Добавить значок</a>
+                <a href="profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container" style="margin-bottom: 2rem;">
+            <h2>➕ Создать категорию</h2>
+            <div id="createError" class="error-message" style="display: none;"></div>
+            <form id="createCategoryForm">
+                <div class="form-group">
+                    <label>Название категории</label>
+                    <input type="text" id="categoryName" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label>Описание (необязательно)</label>
+                    <textarea id="categoryDescription" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Создать категорию</button>
+            </form>
+        </div>
+
+        <div>
+            <h2>📁 Мои категории</h2>
+            <div id="categoriesGrid" class="badges-grid">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        async function loadCategoriesList() {
+            const grid = document.getElementById('categoriesGrid');
+            grid.innerHTML = '<div class="loading">Загрузка...</div>';
+            
+            try {
+                const categories = await getCategories();
+                
+                if (categories.length === 0) {
+                    grid.innerHTML = '<div class="loading">📭 У вас пока нет категорий. Создайте первую!</div>';
+                    return;
+                }
+                
+                grid.innerHTML = categories.map(cat => `
+                    <div class="badge-card">
+                        <div class="badge-image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 3rem;">📁</span>
+                        </div>
+                        <div class="badge-info">
+                            <h3>${escapeHtml(cat.name)}</h3>
+                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">${escapeHtml(cat.description || 'Нет описания')}</p>
+                            <div class="badge-meta">
+                                <span>📦 Наборов: ${cat.sets_count || 0}</span>
+                            </div>
+                            <div class="badge-actions">
+                                <a href="sets.html?category_id=${cat.id}" class="btn-outline" style="text-decoration: none; font-size: 0.8rem;">📂 Открыть</a>
+                                <button class="delete-category" data-id="${cat.id}" data-name="${escapeHtml(cat.name)}" style="background: none; border: none; cursor: pointer; color: #ef4444;">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.delete-category').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const id = btn.dataset.id;
+                        const name = btn.dataset.name;
+                        if (confirm(`Удалить категорию "${name}"? Все наборы в ней также будут удалены.`)) {
+                            try {
+                                await deleteCategory(id);
+                                loadCategoriesList();
+                            } catch (error) {
+                                alert('Ошибка: ' + error.message);
+                            }
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                grid.innerHTML = `<div class="loading">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+        
+        document.getElementById('createCategoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('categoryName').value.trim();
+            const description = document.getElementById('categoryDescription').value.trim();
+            const errorDiv = document.getElementById('createError');
+            
+            if (!name) {
+                errorDiv.textContent = 'Введите название категории';
+                errorDiv.style.display = 'block';
+                setTimeout(() => errorDiv.style.display = 'none', 3000);
+                return;
+            }
+            
+            try {
+                await createCategory(name, description);
+                document.getElementById('categoryName').value = '';
+                document.getElementById('categoryDescription').value = '';
+                loadCategoriesList();
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                setTimeout(() => errorDiv.style.display = 'none', 5000);
+            }
+        });
+        
+        checkAuth().then(loadCategoriesList);
+    </script>
+</body>
+</html>

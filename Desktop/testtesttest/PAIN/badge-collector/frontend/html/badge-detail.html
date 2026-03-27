@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Значок — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html">📁 Коллекция</a>
+                <a href="add-badge.html">➕ Добавить значок</a>
+                <a href="profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="badgeDetail" class="badge-detail">
+            <div class="loading">Загрузка...</div>
+        </div>
+    </main>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const badgeId = urlParams.get('id');
+        
+        const conditionMap = {
+            excellent: 'Отличное',
+            good: 'Хорошее',
+            average: 'Среднее',
+            poor: 'Плохое',
+        };
+        
+        async function loadBadgeDetail() {
+            if (!badgeId) {
+                document.getElementById('badgeDetail').innerHTML = '<div class="error">ID значка не указан</div>';
+                return;
+            }
+            
+            try {
+                const badge = await getBadge(badgeId);
+                renderBadgeDetail(badge);
+            } catch (error) {
+                document.getElementById('badgeDetail').innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+        
+        async function setMainPhoto(photoId) {
+            try {
+                await makeMainPhoto(badgeId, photoId);
+                loadBadgeDetail();
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+        
+        async function deletePhoto(photoId) {
+            if (confirm('Удалить это фото?')) {
+                try {
+                    await deletePhotoFromBadge(badgeId, photoId);
+                    loadBadgeDetail();
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                }
+            }
+        }
+        
+        async function addPhoto(file) {
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('photo', file);
+            try {
+                await addBadgePhoto(badgeId, formData);
+                loadBadgeDetail();
+            } catch (error) {
+                alert('Ошибка загрузки фото: ' + error.message);
+            }
+        }
+        
+        function renderBadgeDetail(badge) {
+            const mainPhotoUrl = badge.main_photo_url ? `http://localhost:8000${badge.main_photo_url}` : null;
+            
+            const photosHtml = badge.photos && badge.photos.length > 0 ? `
+                <div class="detail-photos">
+                    <h3>📸 Все фотографии (${badge.photos.length})</h3>
+                    <div class="photos-grid">
+                        ${badge.photos.map(photo => `
+                            <div class="detail-photo">
+                                <img src="http://localhost:8000${photo.file_path}" alt="Фото">
+                                <div class="photo-overlay">
+                                    ${!photo.is_main ? `<button onclick="setMainPhoto(${photo.id})">⭐ Главное</button>` : '<span style="color: gold;">★ Главное</span>'}
+                                    <button onclick="deletePhoto(${photo.id})" style="color: #ef4444;">🗑️</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button onclick="document.getElementById('addPhotoInput').click()" class="btn-secondary" style="margin-top: 1rem;">➕ Добавить фото</button>
+                    <input type="file" id="addPhotoInput" accept="image/jpeg,image/png" style="display: none;" onchange="addPhoto(this.files[0])">
+                </div>
+            ` : '<p>📷 Нет фотографий</p>';
+            
+            const tagsHtml = badge.tags && badge.tags.length > 0 
+                ? `<div class="badge-tags" style="margin-top: 1rem;">${badge.tags.map(t => `<span class="badge-tag">#${escapeHtml(t)}</span>`).join('')}</div>`
+                : '';
+            
+            const html = `
+                <div class="detail-header">
+                    <h2>${escapeHtml(badge.name)}</h2>
+                    <div class="detail-actions">
+                        <button id="editBtn" class="btn-secondary">✏️ Редактировать</button>
+                        <button id="deleteBtn" class="btn-danger">🗑️ Удалить</button>
+                    </div>
+                </div>
+                
+                <div class="detail-content">
+                    <div class="detail-main-photo">
+                        ${mainPhotoUrl ? `<img src="${mainPhotoUrl}" alt="${escapeHtml(badge.name)}">` : '<div class="no-photo">🏷️ Нет фото</div>'}
+                    </div>
+                    
+                    <div class="detail-info">
+                        <div class="info-row"><span class="info-label">Название:</span><span class="info-value">${escapeHtml(badge.name)}</span></div>
+                        <div class="info-row"><span class="info-label">Описание:</span><span class="info-value">${escapeHtml(badge.description) || '—'}</span></div>
+                        <div class="info-row"><span class="info-label">Год:</span><span class="info-value">${badge.year || '—'}</span></div>
+                        <div class="info-row"><span class="info-label">Материал:</span><span class="info-value">${escapeHtml(badge.material) || '—'}</span></div>
+                        <div class="info-row"><span class="info-label">Состояние:</span><span class="info-value">${conditionMap[badge.condition] || badge.condition || '—'}</span></div>
+                        <div class="info-row"><span class="info-label">Набор:</span><span class="info-value">${badge.set_name || `ID: ${badge.set_id}`}</span></div>
+                        <div class="info-row"><span class="info-label">Добавлен:</span><span class="info-value">${new Date(badge.created_at).toLocaleDateString('ru-RU')}</span></div>
+                        ${tagsHtml}
+                    </div>
+                </div>
+                ${photosHtml}
+            `;
+            
+            document.getElementById('badgeDetail').innerHTML = html;
+            
+            document.getElementById('deleteBtn').addEventListener('click', async () => {
+                if (confirm('Удалить этот значок?')) {
+                    await deleteBadge(badgeId);
+                    window.location.href = 'index.html';
+                }
+            });
+            
+            document.getElementById('editBtn').addEventListener('click', () => {
+                window.location.href = `edit-badge.html?id=${badgeId}`;
+            });
+        }
+        
+        checkAuth().then(loadBadgeDetail);
+    </script>
+</body>
+</html>

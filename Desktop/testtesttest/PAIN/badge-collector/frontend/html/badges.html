@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Значки — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html">📁 Коллекция</a>
+                <a href="add-badge.html">➕ Добавить значок</a>
+                <a href="profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="setInfo" style="margin-bottom: 1rem;">
+            <a href="javascript:history.back()" class="btn-secondary" style="display: inline-block; width: auto;">← Назад</a>
+        </div>
+        
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="🔍 Поиск по названию...">
+            <select id="conditionFilter">
+                <option value="">⭐ Все состояния</option>
+                <option value="excellent">Отличное</option>
+                <option value="good">Хорошее</option>
+                <option value="average">Среднее</option>
+                <option value="poor">Плохое</option>
+            </select>
+            <button id="resetFiltersBtn" class="btn-secondary">Сбросить</button>
+        </div>
+
+        <div id="badgesGrid" class="badges-grid">
+            <div class="loading">Загрузка...</div>
+        </div>
+
+        <div id="pagination" class="pagination"></div>
+    </main>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/badges.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const setId = urlParams.get('set_id');
+        
+        window.currentSetId = setId;
+        
+        // Добавляем кнопку добавления значка
+        const addButton = document.createElement('a');
+        addButton.href = `add-badge.html?set_id=${setId}`;
+        addButton.className = 'btn-primary';
+        addButton.textContent = '➕ Добавить значок';
+        addButton.style.display = 'inline-block';
+        addButton.style.width = 'auto';
+        addButton.style.textDecoration = 'none';
+        document.querySelector('.filters').appendChild(addButton);
+        
+        checkAuth().then(() => {
+            if (setId) {
+                loadCategories();
+                loadBadges();
+            }
+        });
+    </script>
+</body>
+</html>

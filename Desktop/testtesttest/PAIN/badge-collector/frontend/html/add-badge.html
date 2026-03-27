@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить значок — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html">📁 Коллекция</a>
+                <a href="add-badge.html" class="active">➕ Добавить значок</a>
+                <a href="profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container">
+            <h2>➕ Добавить значок</h2>
+            <div id="errorMsg" class="error-message" style="display: none;"></div>
+            <div id="successMsg" class="success-message" style="display: none;"></div>
+            
+            <form id="badgeForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Название *</label>
+                    <input type="text" id="name" name="name" required maxlength="200">
+                </div>
+                
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Год выпуска</label>
+                        <input type="number" id="year" name="year" min="1800" max="2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Материал</label>
+                        <input type="text" id="material" name="material" maxlength="100">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Состояние</label>
+                    <select id="condition" name="condition">
+                        <option value="">Не указано</option>
+                        <option value="excellent">Отличное</option>
+                        <option value="good">Хорошее</option>
+                        <option value="average">Среднее</option>
+                        <option value="poor">Плохое</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Набор *</label>
+                    <select id="set_id" name="set_id" required>
+                        <option value="">Выберите набор</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Теги (через запятую)</label>
+                    <input type="text" id="tags" name="tags" placeholder="спорт, олимпиада, металл">
+                    <small>Можно добавить несколько тегов через запятую</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Фотографии * (до 5 шт, JPEG/PNG, до 10 МБ, мин. 500×500px)</label>
+                    <input type="file" id="photos" name="photos" accept="image/jpeg,image/png" multiple required>
+                    <small>Первое фото станет главным. Можно выбрать до 5 файлов</small>
+                </div>
+                
+                <!-- Секция редактирования фото -->
+                <div id="imageEditorSection" style="display: none; margin-top: 1.5rem; padding: 1rem; background: #f9f9f9; border-radius: 8px;">
+                    <label style="font-weight: bold;">📸 Редактирование фото</label>
+                    <div id="imagePreview" style="margin: 1rem 0; text-align: center;">
+                        <img id="previewImg" style="max-width: 300px; max-height: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    </div>
+                    <div class="form-actions" style="margin-top: 1rem; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" id="autoRotateBtn" class="btn-primary" style="width: auto;">🔄 Автовыравнивание</button>
+                        <button type="button" id="rotateLeftBtn" class="btn-secondary" style="width: auto;">↩️ Повернуть влево</button>
+                        <button type="button" id="rotateRightBtn" class="btn-secondary" style="width: auto;">↪️ Повернуть вправо</button>
+                        <button type="button" id="removeBgBtn" class="btn-secondary" style="width: auto;">✨ Удалить фон</button>
+                    </div>
+                    <small>Изменения применяются к выбранному фото. После обработки фото обновляется.</small>
+                </div>
+                
+                <div class="form-actions" style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary">Сохранить значок</button>
+                    <button type="button" class="btn-secondary" onclick="window.location.href='index.html'">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const presetSetId = urlParams.get('set_id');
+        
+        let currentPhotoFile = null;
+        
+        async function loadSets() {
+            try {
+                const sets = await getSets();
+                const select = document.getElementById('set_id');
+                select.innerHTML = '<option value="">Выберите набор</option>';
+                sets.forEach(set => {
+                    const option = document.createElement('option');
+                    option.value = set.id;
+                    option.textContent = `${set.name} (${set.collected_count || 0}/${set.total_count})`;
+                    select.appendChild(option);
+                });
+                if (presetSetId) select.value = presetSetId;
+            } catch (error) {
+                console.error('Ошибка загрузки наборов:', error);
+                showError('Не удалось загрузить наборы');
+            }
+        }
+        
+        // ML функции
+        async function processImage(file, autoRotate = true, removeBg = false) {
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('auto_rotate', autoRotate);
+            formData.append('remove_bg', removeBg);
+            const token = getToken();
+            const response = await fetch('http://localhost:8000/api/process-image', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            if (!response.ok) throw new Error('Ошибка обработки');
+            return response.json();
+        }
+        
+        async function rotateImage(file, angle) {
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('angle', angle);
+            const token = getToken();
+            const response = await fetch('http://localhost:8000/api/rotate-image', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            if (!response.ok) throw new Error('Ошибка поворота');
+            return response.json();
+        }
+        
+        async function removeBackgroundApi(file) {
+            const formData = new FormData();
+            formData.append('photo', file);
+            const token = getToken();
+            const response = await fetch('http://localhost:8000/api/remove-background', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            if (!response.ok) throw new Error('Ошибка удаления фона');
+            return response.json();
+        }
+        
+        function showLoader() {
+            document.body.style.cursor = 'wait';
+            document.querySelectorAll('#imageEditorSection button').forEach(btn => btn.disabled = true);
+        }
+        
+        function hideLoader() {
+            document.body.style.cursor = 'default';
+            document.querySelectorAll('#imageEditorSection button').forEach(btn => btn.disabled = false);
+        }
+        
+        async function updatePreviewAfterEdit(file) {
+            const url = URL.createObjectURL(file);
+            document.getElementById('previewImg').src = url;
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            document.getElementById('photos').files = dataTransfer.files;
+            currentPhotoFile = file;
+        }
+        
+        // Обработчики редактора
+        document.getElementById('photos').addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                currentPhotoFile = files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('previewImg').src = event.target.result;
+                    document.getElementById('imageEditorSection').style.display = 'block';
+                };
+                reader.readAsDataURL(currentPhotoFile);
+            } else {
+                document.getElementById('imageEditorSection').style.display = 'none';
+                currentPhotoFile = null;
+            }
+        });
+        
+        document.getElementById('autoRotateBtn').addEventListener('click', async () => {
+            if (!currentPhotoFile) { showError('Сначала выберите фото'); return; }
+            showLoader();
+            try {
+                const result = await processImage(currentPhotoFile, true, false);
+                if (result.success) {
+                    const url = `http://localhost:8000${result.processed_url}`;
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const newFile = new File([blob], currentPhotoFile.name, { type: blob.type });
+                    await updatePreviewAfterEdit(newFile);
+                    showSuccessMessage('Автовыравнивание выполнено');
+                }
+            } catch (error) { showError('Ошибка: ' + error.message); }
+            hideLoader();
+        });
+        
+        document.getElementById('rotateLeftBtn').addEventListener('click', async () => {
+            if (!currentPhotoFile) { showError('Сначала выберите фото'); return; }
+            showLoader();
+            try {
+                const result = await rotateImage(currentPhotoFile, -90);
+                if (result.success) {
+                    const url = `http://localhost:8000${result.image_url}`;
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const newFile = new File([blob], currentPhotoFile.name, { type: blob.type });
+                    await updatePreviewAfterEdit(newFile);
+                    showSuccessMessage('Поворот влево выполнен');
+                }
+            } catch (error) { showError('Ошибка: ' + error.message); }
+            hideLoader();
+        });
+        
+        document.getElementById('rotateRightBtn').addEventListener('click', async () => {
+            if (!currentPhotoFile) { showError('Сначала выберите фото'); return; }
+            showLoader();
+            try {
+                const result = await rotateImage(currentPhotoFile, 90);
+                if (result.success) {
+                    const url = `http://localhost:8000${result.image_url}`;
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const newFile = new File([blob], currentPhotoFile.name, { type: blob.type });
+                    await updatePreviewAfterEdit(newFile);
+                    showSuccessMessage('Поворот вправо выполнен');
+                }
+            } catch (error) { showError('Ошибка: ' + error.message); }
+            hideLoader();
+        });
+        
+        document.getElementById('removeBgBtn').addEventListener('click', async () => {
+            if (!currentPhotoFile) { showError('Сначала выберите фото'); return; }
+            showLoader();
+            try {
+                const result = await removeBackgroundApi(currentPhotoFile);
+                if (result.success) {
+                    const url = `http://localhost:8000${result.image_url}`;
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const newFile = new File([blob], currentPhotoFile.name, { type: blob.type });
+                    await updatePreviewAfterEdit(newFile);
+                    showSuccessMessage('Фон удалён');
+                }
+            } catch (error) { showError('Ошибка: ' + error.message); }
+            hideLoader();
+        });
+        
+        // Отправка формы
+        document.getElementById('badgeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('name', document.getElementById('name').value);
+            
+            const description = document.getElementById('description').value;
+            if (description) formData.append('description', description);
+            
+            const year = document.getElementById('year').value;
+            if (year) formData.append('year', year);
+            
+            const material = document.getElementById('material').value;
+            if (material) formData.append('material', material);
+            
+            const condition = document.getElementById('condition').value;
+            if (condition) formData.append('condition', condition);
+            
+            const setId = document.getElementById('set_id').value;
+            if (!setId) { showError('Выберите набор'); return; }
+            formData.append('set_id', setId);
+            
+            const tags = document.getElementById('tags').value;
+            if (tags) {
+                const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t);
+                formData.append('tags', JSON.stringify(tagsArray));
+            }
+            
+            const photoFiles = document.getElementById('photos').files;
+            if (photoFiles.length === 0) { showError('Выберите хотя бы одну фотографию'); return; }
+            if (photoFiles.length > 5) { showError('Можно загрузить не более 5 фотографий'); return; }
+            
+            for (let i = 0; i < photoFiles.length; i++) {
+                formData.append('photos', photoFiles[i]);
+            }
+            
+            const errorDiv = document.getElementById('errorMsg');
+            const successDiv = document.getElementById('successMsg');
+            
+            try {
+                errorDiv.style.display = 'none';
+                const badge = await createBadge(formData);
+                successDiv.textContent = '✅ Значок добавлен! Перенаправление...';
+                successDiv.style.display = 'block';
+                setTimeout(() => window.location.href = `badge-detail.html?id=${badge.id}`, 1500);
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                setTimeout(() => errorDiv.style.display = 'none', 5000);
+            }
+        });
+        
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
+        
+        function showSuccessMessage(msg) {
+            const successDiv = document.getElementById('successMsg');
+            successDiv.textContent = msg;
+            successDiv.style.display = 'block';
+            setTimeout(() => successDiv.style.display = 'none', 3000);
+        }
+        
+        checkAuth().then(loadSets);
+    </script>
+</body>
+</html>

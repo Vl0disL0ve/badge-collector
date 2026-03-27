@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Альбом коллекционера — Моя коллекция</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html" class="active">📚 Каталог</a>
+                <a href="categories.html">📁 Коллекция</a>
+                <a href="add-badge.html">➕ Добавить значок</a>
+                <a href="profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="🔍 Поиск по названию...">
+            <select id="categoryFilter">
+                <option value="">📂 Все категории</option>
+            </select>
+            <select id="setFilter">
+                <option value="">📦 Все наборы</option>
+            </select>
+            <select id="conditionFilter">
+                <option value="">⭐ Все состояния</option>
+                <option value="excellent">Отличное</option>
+                <option value="good">Хорошее</option>
+                <option value="average">Среднее</option>
+                <option value="poor">Плохое</option>
+            </select>
+            <button id="resetFiltersBtn" class="btn-secondary">Сбросить</button>
+        </div>
+
+        <div id="badgesGrid" class="badges-grid">
+            <div class="loading">Загрузка...</div>
+        </div>
+
+        <div id="pagination" class="pagination"></div>
+    </main>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/badges.js"></script>
+    <script>
+        checkAuth().then(() => {
+            loadCategories();
+            loadSets();
+            loadBadges();
+        });
+    </script>
+</body>
+</html>

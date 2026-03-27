@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Наборы — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html">📁 Коллекция</a>
+                <a href="add-badge.html">➕ Добавить значок</a>
+                <a href="profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="categoryInfo" style="margin-bottom: 1rem;">
+            <a href="categories.html" class="btn-secondary" style="display: inline-block; width: auto;">← Назад к категориям</a>
+        </div>
+        
+        <div class="form-container" style="margin-bottom: 2rem;">
+            <h2>➕ Создать набор</h2>
+            <div id="createError" class="error-message" style="display: none;"></div>
+            <form id="createSetForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Название набора *</label>
+                    <input type="text" id="setName" required maxlength="150">
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="setDescription" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Всего значков в наборе *</label>
+                        <input type="number" id="totalCount" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Фото набора (JPEG/PNG, до 10MB)</label>
+                        <input type="file" id="setPhoto" accept="image/jpeg,image/png">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Создать набор</button>
+            </form>
+        </div>
+
+        <div>
+            <h2>📦 Наборы в этой категории</h2>
+            <div id="setsGrid" class="badges-grid">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('category_id');
+        let currentCategoryName = '';
+        
+        async function loadSets() {
+            if (!categoryId) {
+                document.getElementById('setsGrid').innerHTML = '<div class="loading">❌ Категория не выбрана</div>';
+                return;
+            }
+            
+            const grid = document.getElementById('setsGrid');
+            grid.innerHTML = '<div class="loading">Загрузка...</div>';
+            
+            try {
+                const sets = await getSets(categoryId);
+                
+                if (sets.length === 0) {
+                    grid.innerHTML = '<div class="loading">📭 В этой категории пока нет наборов. Создайте первый!</div>';
+                    return;
+                }
+                
+                grid.innerHTML = sets.map(set => `
+                    <div class="badge-card">
+                        <div class="badge-image">
+                            ${set.photo_path ? `<img src="http://localhost:8000${set.photo_path}" alt="${escapeHtml(set.name)}">` : '<span style="font-size: 3rem;">📦</span>'}
+                        </div>
+                        <div class="badge-info">
+                            <h3>${escapeHtml(set.name)}</h3>
+                            <p style="font-size: 0.85rem; color: #666;">${escapeHtml(set.description || 'Нет описания')}</p>
+                            <div class="badge-meta">
+                                <span>📊 Собрано: ${set.collected_count || 0}/${set.total_count}</span>
+                                <span>📈 ${set.completion_percent || 0}%</span>
+                            </div>
+                            <div class="badge-actions">
+                                <a href="badges.html?set_id=${set.id}" class="btn-outline" style="text-decoration: none; font-size: 0.8rem;">🏷️ Открыть</a>
+                                <button class="delete-set" data-id="${set.id}" data-name="${escapeHtml(set.name)}" style="background: none; border: none; cursor: pointer; color: #ef4444;">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.delete-set').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const id = btn.dataset.id;
+                        const name = btn.dataset.name;
+                        if (confirm(`Удалить набор "${name}"? Все значки в нём также будут удалены.`)) {
+                            try {
+                                await deleteSet(id);
+                                loadSets();
+                            } catch (error) {
+                                alert('Ошибка: ' + error.message);
+                            }
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                grid.innerHTML = `<div class="loading">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+        
+        document.getElementById('createSetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('name', document.getElementById('setName').value.trim());
+            formData.append('description', document.getElementById('setDescription').value.trim());
+            formData.append('total_count', document.getElementById('totalCount').value);
+            formData.append('category_id', categoryId);
+            
+            const photoFile = document.getElementById('setPhoto').files[0];
+            if (photoFile) {
+                formData.append('photo', photoFile);
+            }
+            
+            const errorDiv = document.getElementById('createError');
+            
+            try {
+                await createSet(formData);
+                document.getElementById('setName').value = '';
+                document.getElementById('setDescription').value = '';
+                document.getElementById('totalCount').value = '';
+                document.getElementById('setPhoto').value = '';
+                loadSets();
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                setTimeout(() => errorDiv.style.display = 'none', 5000);
+            }
+        });
+        
+        checkAuth().then(() => {
+            if (categoryId) loadSets();
+        });
+    </script>
+</body>
+</html>

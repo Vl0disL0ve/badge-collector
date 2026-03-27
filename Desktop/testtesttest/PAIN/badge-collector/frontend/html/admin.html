@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html">📁 Коллекция</a>
+                <a href="add-badge.html">➕ Добавить значок</a>
+                <a href="profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container">
+            <h2>👑 Административная панель</h2>
+            <div id="accessError" class="error-message" style="display: none;">⚠️ У вас нет прав администратора</div>
+            <div id="adminContent" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number" id="totalUsers">—</div><div class="stat-label">Пользователей</div></div>
+                    <div class="stat-card"><div class="stat-number" id="totalBadges">—</div><div class="stat-label">Значков</div></div>
+                    <div class="stat-card"><div class="stat-number" id="totalSets">—</div><div class="stat-label">Наборов</div></div>
+                    <div class="stat-card"><div class="stat-number" id="totalCategories">—</div><div class="stat-label">Категорий</div></div>
+                </div>
+                <h3>📊 Регистрации пользователей</h3>
+                <canvas id="registrationsChart" style="max-height: 300px; margin-bottom: 2rem;"></canvas>
+                <h3>👥 Управление пользователями</h3>
+                <div class="filters" style="margin-bottom: 1rem;">
+                    <input type="text" id="userSearch" placeholder="🔍 Поиск по email...">
+                    <button id="addUserBtn" class="btn-primary" style="width: auto;">➕ Добавить пользователя</button>
+                </div>
+                <div id="usersTable" style="overflow-x: auto;"><div class="loading">Загрузка...</div></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="addUserModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
+        <div class="auth-card" style="max-width: 400px; margin: 20px;">
+            <h3>➕ Добавить пользователя</h3>
+            <div id="modalError" class="error-message" style="display: none;"></div>
+            <form id="addUserForm">
+                <div class="form-group"><label>Email</label><input type="email" id="newUserEmail" required></div>
+                <div class="form-group"><label>Пароль</label><input type="password" id="newUserPassword" required minlength="6"></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Создать</button>
+                    <button type="button" id="closeModalBtn" class="btn-secondary">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        let registrationsChart = null;
+        
+        async function checkAdminAccess() {
+            try {
+                const profile = await getProfile();
+                if (!profile.is_admin) { document.getElementById('accessError').style.display = 'block'; return false; }
+                document.getElementById('adminContent').style.display = 'block';
+                return true;
+            } catch (error) { document.getElementById('accessError').style.display = 'block'; return false; }
+        }
+        
+        async function loadAdminStats() {
+            try {
+                const stats = await getAdminStats();
+                document.getElementById('totalUsers').textContent = stats.total_users || 0;
+                document.getElementById('totalBadges').textContent = stats.total_badges || 0;
+                document.getElementById('totalSets').textContent = stats.total_sets || 0;
+                document.getElementById('totalCategories').textContent = stats.total_categories || 0;
+                if (stats.registrations && registrationsChart) {
+                    registrationsChart.data.datasets[0].data = stats.registrations.map(r => r.count);
+                    registrationsChart.data.labels = stats.registrations.map(r => r.date);
+                    registrationsChart.update();
+                }
+            } catch (error) { console.error('Ошибка загрузки статистики:', error); }
+        }
+        
+        async function loadUsers(search = '') {
+            const tableDiv = document.getElementById('usersTable');
+            tableDiv.innerHTML = '<div class="loading">Загрузка...</div>';
+            try {
+                const users = await getAdminUsers(search);
+                if (users.length === 0) { tableDiv.innerHTML = '<div class="loading">📭 Пользователи не найдены</div>'; return; }
+                tableDiv.innerHTML = `<table style="width:100%;border-collapse:collapse;"><thead><tr><th>ID</th><th>Email</th><th>Telegram</th><th>Статус</th><th>Дата</th><th>Действия</th></tr></thead><tbody>${users.map(u => `
+                    <tr><td>${u.id}</td><td>${escapeHtml(u.email)}</td><td>${u.telegram_id || '—'}</td><td>${u.is_admin ? '👑 Админ' : '👤 Пользователь'}</td><td>${new Date(u.created_at).toLocaleDateString('ru-RU')}</td>
+                    <td>${!u.is_admin ? `<button class="delete-user" data-id="${u.id}" data-email="${escapeHtml(u.email)}" style="background:none;border:none;color:#ef4444;cursor:pointer;">🗑️</button>` : '—'}</td></tr>`).join('')}</tbody></table>`;
+                document.querySelectorAll('.delete-user').forEach(btn => btn.addEventListener('click', async () => {
+                    if (confirm(`Удалить пользователя "${btn.dataset.email}"?`)) {
+                        await deleteAdminUser(btn.dataset.id);
+                        loadUsers(document.getElementById('userSearch').value);
+                        loadAdminStats();
+                    }
+                }));
+            } catch (error) { tableDiv.innerHTML = `<div class="loading">❌ Ошибка: ${error.message}</div>`; }
+        }
+        
+        async function initChart() {
+            const ctx = document.getElementById('registrationsChart').getContext('2d');
+            registrationsChart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ label: 'Новые пользователи', data: [], borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', tension: 0.4, fill: true }] }, options: { responsive: true, maintainAspectRatio: true } });
+        }
+        
+        document.getElementById('userSearch').addEventListener('input', (e) => loadUsers(e.target.value));
+        document.getElementById('addUserBtn').addEventListener('click', () => document.getElementById('addUserModal').style.display = 'flex');
+        document.getElementById('closeModalBtn').addEventListener('click', () => document.getElementById('addUserModal').style.display = 'none');
+        document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('newUserEmail').value;
+            const password = document.getElementById('newUserPassword').value;
+            try {
+                await createAdminUser(email, password);
+                document.getElementById('addUserModal').style.display = 'none';
+                document.getElementById('newUserEmail').value = '';
+                document.getElementById('newUserPassword').value = '';
+                loadUsers(document.getElementById('userSearch').value);
+                loadAdminStats();
+            } catch (error) { document.getElementById('modalError').textContent = error.message; document.getElementById('modalError').style.display = 'block'; }
+        });
+        document.getElementById('addUserModal').addEventListener('click', (e) => { if (e.target === document.getElementById('addUserModal')) document.getElementById('addUserModal').style.display = 'none'; });
+        
+        checkAuth().then(async () => { if (await checkAdminAccess()) { await initChart(); await loadAdminStats(); await loadUsers(); } });
+    </script>
+</body>
+</html>
