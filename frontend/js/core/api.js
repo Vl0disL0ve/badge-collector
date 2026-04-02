@@ -324,9 +324,18 @@ async function detectBadgesOnSet(file) {
 }
 
 // ========== EXPORT ==========
-async function exportCollection(setId = null) {
-    const query = setId ? `?set_id=${setId}` : '';
-    return apiRequest(`/export${query}`);
+async function exportCollection(setId = null, columns = 3) {
+    const params = new URLSearchParams();
+    if (setId) {
+        params.append('set_id', String(setId));
+    }
+    if (columns) {
+        params.append('columns', String(columns));
+    }
+    const queryString = params.toString();
+    const url = `/export${queryString ? `?${queryString}` : ''}`;
+    console.log('Export URL:', url); // Для отладки
+    return apiRequest(url);
 }
 
 // ========== ADMIN ==========
