@@ -31,3 +31,11 @@ function showSuccess(message, elementId = 'successMsg') {
         setTimeout(() => div.style.display = 'none', 3000);
     }
 }
+
+// Вспомогательная функция для получения полного URL фото
+function getPhotoUrl(path) {
+    if (!path) return null;
+    // Используем тот же API_BASE_URL, что и в api.js
+    const baseUrl = 'http://localhost:8000';
+    return `${baseUrl}${path}`;
+}

@@ -1,16 +1,13 @@
 // modules/photo-editor.js
 let currentEditorFile = null;
 let currentEditorCallback = null;
-let currentEditorBadgeId = null;
-let currentEditorPhotoId = null;
-let currentRotationAngle = 0;
+let isEditorOpen = false;
 
-function openPhotoEditor(file, onSave, badgeId = null, photoId = null) {
+function openPhotoEditor(file, onSave) {
+    console.log('openPhotoEditor called', file);
     currentEditorFile = file;
     currentEditorCallback = onSave;
-    currentEditorBadgeId = badgeId;
-    currentEditorPhotoId = photoId;
-    currentRotationAngle = 0;
+    isEditorOpen = true;
     
     const modal = document.getElementById('photoEditorModal');
     const preview = document.getElementById('editorPreview');
@@ -31,6 +28,7 @@ function openPhotoEditor(file, onSave, badgeId = null, photoId = null) {
     reader.readAsDataURL(file);
     
     modal.style.display = 'flex';
+    console.log('Modal opened');
 }
 
 function closePhotoEditor() {
@@ -38,9 +36,8 @@ function closePhotoEditor() {
     if (modal) modal.style.display = 'none';
     currentEditorFile = null;
     currentEditorCallback = null;
-    currentEditorBadgeId = null;
-    currentEditorPhotoId = null;
-    currentRotationAngle = 0;
+    isEditorOpen = false;
+    console.log('Modal closed');
 }
 
 function showEditorError(message) {
@@ -79,7 +76,6 @@ function hideEditorLoader() {
 
 async function updateEditorPreview(newFile) {
     currentEditorFile = newFile;
-    currentRotationAngle = 0;
     const reader = new FileReader();
     reader.onload = (e) => {
         document.getElementById('editorPreview').src = e.target.result;
@@ -92,15 +88,148 @@ async function updateEditorPreview(newFile) {
     if (valueSpan) valueSpan.textContent = '0°';
 }
 
-// Обновление значения слайдера
+// Блокировка Enter при открытой модалке
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && isEditorOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Enter blocked during modal open');
+        return false;
+    }
+});
+
+// Закрытие модалки по клику на фон
+const modalElement = document.getElementById('photoEditorModal');
+if (modalElement) {
+    modalElement.addEventListener('click', (e) => {
+        if (e.target === modalElement) {
+            closePhotoEditor();
+        }
+    });
+}
+
+// ========== ОБРАБОТЧИКИ С ПОЛНЫМ ПРЕДОТВРАЩЕНИЕМ ВСПЛЫТИЯ ==========
+
+function createSafeHandler(handler) {
+    return async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await handler();
+    };
+}
+
+// Автовыравнивание
+document.getElementById('editorAutoRotate')?.addEventListener('click', createSafeHandler(async () => {
+    if (!currentEditorFile) return;
+    showEditorLoader();
+    try {
+        const result = await processImage(currentEditorFile, true, false);
+        if (result.success) {
+            const url = `http://localhost:8000${result.processed_url}`;
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            const newFile = new File([blob], currentEditorFile.name, { type: blob.type });
+            await updateEditorPreview(newFile);
+            showEditorSuccess('Автовыравнивание выполнено');
+        }
+    } catch (error) {
+        showEditorError('Ошибка: ' + error.message);
+    }
+    hideEditorLoader();
+}));
+
+// Определение оси
+document.getElementById('editorDetectAxis')?.addEventListener('click', createSafeHandler(async () => {
+    if (!currentEditorFile) return;
+    showEditorLoader();
+    try {
+        const result = await detectAxis(currentEditorFile);
+        if (result.success) {
+            const slider = document.getElementById('editorRotateSlider');
+            const valueSpan = document.getElementById('editorRotateValue');
+            if (slider) slider.value = Math.round(result.angle);
+            if (valueSpan) valueSpan.textContent = `${Math.round(result.angle)}°`;
+            showEditorSuccess(`Обнаружена ось: ${result.angle.toFixed(1)}°. Нажмите "Применить" для выравнивания.`);
+        } else {
+            showEditorError('Не удалось определить ось: ' + (result.message || 'неизвестная ошибка'));
+        }
+    } catch (error) {
+        showEditorError('Ошибка: ' + error.message);
+    }
+    hideEditorLoader();
+}));
+
+// Поворот влево
+document.getElementById('editorRotateLeft')?.addEventListener('click', createSafeHandler(async () => {
+    if (!currentEditorFile) return;
+    showEditorLoader();
+    try {
+        const result = await rotateImage(currentEditorFile, -90);
+        if (result.success) {
+            const url = `http://localhost:8000${result.image_url}`;
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            const newFile = new File([blob], currentEditorFile.name, { type: blob.type });
+            await updateEditorPreview(newFile);
+            showEditorSuccess('Поворот на -90° выполнен');
+        }
+    } catch (error) {
+        showEditorError('Ошибка: ' + error.message);
+    }
+    hideEditorLoader();
+}));
+
+// Поворот вправо
+document.getElementById('editorRotateRight')?.addEventListener('click', createSafeHandler(async () => {
+    if (!currentEditorFile) return;
+    showEditorLoader();
+    try {
+        const result = await rotateImage(currentEditorFile, 90);
+        if (result.success) {
+            const url = `http://localhost:8000${result.image_url}`;
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            const newFile = new File([blob], currentEditorFile.name, { type: blob.type });
+            await updateEditorPreview(newFile);
+            showEditorSuccess('Поворот на +90° выполнен');
+        }
+    } catch (error) {
+        showEditorError('Ошибка: ' + error.message);
+    }
+    hideEditorLoader();
+}));
+
+// Удаление фона
+document.getElementById('editorRemoveBg')?.addEventListener('click', createSafeHandler(async () => {
+    if (!currentEditorFile) return;
+    showEditorLoader();
+    try {
+        const result = await removeBackground(currentEditorFile);
+        if (result.success) {
+            const url = `http://localhost:8000${result.image_url}`;
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            const newFile = new File([blob], currentEditorFile.name, { type: blob.type });
+            await updateEditorPreview(newFile);
+            showEditorSuccess('Фон удалён');
+        }
+    } catch (error) {
+        showEditorError('Ошибка: ' + error.message);
+    }
+    hideEditorLoader();
+}));
+
+// Слайдер ручного поворота
 document.getElementById('editorRotateSlider')?.addEventListener('input', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const angle = parseInt(e.target.value);
     const valueSpan = document.getElementById('editorRotateValue');
     if (valueSpan) valueSpan.textContent = `${angle}°`;
 });
 
 // Применить ручной поворот
-document.getElementById('editorApplyRotate')?.addEventListener('click', async () => {
+document.getElementById('editorApplyRotate')?.addEventListener('click', createSafeHandler(async () => {
     if (!currentEditorFile) return;
     const slider = document.getElementById('editorRotateSlider');
     const angle = parseInt(slider.value);
@@ -125,143 +254,37 @@ document.getElementById('editorApplyRotate')?.addEventListener('click', async ()
         showEditorError('Ошибка поворота: ' + error.message);
     }
     hideEditorLoader();
-});
+}));
 
 // Сброс поворота
-document.getElementById('editorResetRotate')?.addEventListener('click', async () => {
+document.getElementById('editorResetRotate')?.addEventListener('click', createSafeHandler(async () => {
     if (!currentEditorFile) return;
-    showEditorLoader();
-    try {
-        // Сбрасываем, открывая оригинальное изображение заново
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('editorPreview').src = e.target.result;
-        };
-        reader.readAsDataURL(currentEditorFile);
-        const slider = document.getElementById('editorRotateSlider');
-        const valueSpan = document.getElementById('editorRotateValue');
-        if (slider) slider.value = 0;
-        if (valueSpan) valueSpan.textContent = '0°';
-        showEditorSuccess('Поворот сброшен');
-    } catch (error) {
-        showEditorError('Ошибка: ' + error.message);
-    }
-    hideEditorLoader();
-});
+    const slider = document.getElementById('editorRotateSlider');
+    const valueSpan = document.getElementById('editorRotateValue');
+    if (slider) slider.value = 0;
+    if (valueSpan) valueSpan.textContent = '0°';
+    showEditorSuccess('Поворот сброшен');
+}));
 
-// Обработчики остальных кнопок
-document.getElementById('editorAutoRotate')?.addEventListener('click', async () => {
-    if (!currentEditorFile) return;
-    showEditorLoader();
-    try {
-        const result = await processImage(currentEditorFile, true, false);
-        if (result.success) {
-            const url = `http://localhost:8000${result.processed_url}`;
-            const resp = await fetch(url);
-            const blob = await resp.blob();
-            const newFile = new File([blob], currentEditorFile.name, { type: blob.type });
-            await updateEditorPreview(newFile);
-            showEditorSuccess('Автовыравнивание выполнено');
-        }
-    } catch (error) {
-        showEditorError('Ошибка: ' + error.message);
+// Сохранение
+document.getElementById('editorSaveBtn')?.addEventListener('click', createSafeHandler(async () => {
+    if (!currentEditorFile || !currentEditorCallback) {
+        console.error('No file or callback');
+        return;
     }
-    hideEditorLoader();
-});
-
-document.getElementById('editorDetectAxis')?.addEventListener('click', async () => {
-    if (!currentEditorFile) return;
     showEditorLoader();
     try {
-        const result = await detectAxis(currentEditorFile);
-        if (result.success) {
-            // Устанавливаем значение слайдера на обнаруженный угол
-            const slider = document.getElementById('editorRotateSlider');
-            const valueSpan = document.getElementById('editorRotateValue');
-            const detectedAngle = Math.round(result.angle);
-            if (slider) slider.value = detectedAngle;
-            if (valueSpan) valueSpan.textContent = `${detectedAngle}°`;
-            
-            showEditorSuccess(`Обнаружена ось: ${result.angle.toFixed(1)}°.\nИспользуйте "Применить поворот" для выравнивания.`);
-        } else {
-            showEditorError('Не удалось определить ось: ' + (result.message || 'неизвестная ошибка'));
-        }
-    } catch (error) {
-        showEditorError('Ошибка: ' + error.message);
-    }
-    hideEditorLoader();
-});
-
-document.getElementById('editorRotateLeft')?.addEventListener('click', async () => {
-    if (!currentEditorFile) return;
-    showEditorLoader();
-    try {
-        const result = await rotateImage(currentEditorFile, -90);
-        if (result.success) {
-            const url = `http://localhost:8000${result.image_url}`;
-            const resp = await fetch(url);
-            const blob = await resp.blob();
-            const newFile = new File([blob], currentEditorFile.name, { type: blob.type });
-            await updateEditorPreview(newFile);
-            showEditorSuccess('Поворот на -90° выполнен');
-        }
-    } catch (error) {
-        showEditorError('Ошибка: ' + error.message);
-    }
-    hideEditorLoader();
-});
-
-document.getElementById('editorRotateRight')?.addEventListener('click', async () => {
-    if (!currentEditorFile) return;
-    showEditorLoader();
-    try {
-        const result = await rotateImage(currentEditorFile, 90);
-        if (result.success) {
-            const url = `http://localhost:8000${result.image_url}`;
-            const resp = await fetch(url);
-            const blob = await resp.blob();
-            const newFile = new File([blob], currentEditorFile.name, { type: blob.type });
-            await updateEditorPreview(newFile);
-            showEditorSuccess('Поворот на +90° выполнен');
-        }
-    } catch (error) {
-        showEditorError('Ошибка: ' + error.message);
-    }
-    hideEditorLoader();
-});
-
-document.getElementById('editorRemoveBg')?.addEventListener('click', async () => {
-    if (!currentEditorFile) return;
-    showEditorLoader();
-    try {
-        const result = await removeBackground(currentEditorFile);
-        if (result.success) {
-            const url = `http://localhost:8000${result.image_url}`;
-            const resp = await fetch(url);
-            const blob = await resp.blob();
-            const newFile = new File([blob], currentEditorFile.name, { type: blob.type });
-            await updateEditorPreview(newFile);
-            showEditorSuccess('Фон удалён');
-        }
-    } catch (error) {
-        showEditorError('Ошибка: ' + error.message);
-    }
-    hideEditorLoader();
-});
-
-document.getElementById('editorSaveBtn')?.addEventListener('click', async () => {
-    if (!currentEditorFile || !currentEditorCallback) return;
-    showEditorLoader();
-    try {
-        await currentEditorCallback(currentEditorFile, currentEditorBadgeId, currentEditorPhotoId);
+        await currentEditorCallback(currentEditorFile);
         closePhotoEditor();
         showEditorSuccess('Фото сохранено');
     } catch (error) {
+        console.error('Save error:', error);
         showEditorError('Ошибка сохранения: ' + error.message);
     }
     hideEditorLoader();
-});
+}));
 
-document.getElementById('editorCancelBtn')?.addEventListener('click', () => {
+// Отмена
+document.getElementById('editorCancelBtn')?.addEventListener('click', createSafeHandler(() => {
     closePhotoEditor();
-});
+}));

@@ -26,6 +26,7 @@
             <nav>
                 <a href="/html/collection/index.html">📚 Каталог</a>
                 <a href="/html/collection/categories.html">📁 Категории</a>
+                <a href="/html/collection/sets.html">📦 Наборы</a>
                 <a href="add-badge.html">➕ Добавить значок</a>
                 <a href="/html/user/profile.html">👤 Профиль</a>
                 <a href="#" id="logoutBtn">🚪 Выйти</a>
@@ -98,10 +99,50 @@
         </div>
     </main>
 
+    <!-- Модальное окно редактора фото -->
+    <div id="photoEditorModal" class="modal">
+        <div class="modal-content" style="max-width: 650px;">
+            <h3>📸 Редактирование фото</h3>
+            <div id="editorError" class="error-message" style="display: none;"></div>
+            <div id="editorSuccess" class="success-message" style="display: none;"></div>
+            
+            <div style="text-align: center;">
+                <img id="editorPreview" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin: 0.5rem 0; object-fit: contain;">
+            </div>
+            
+            <div class="editor-tools" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 0.75rem 0;">
+                <button id="editorAutoRotate" class="btn-primary btn-small">🔄 Авто</button>
+                <button id="editorDetectAxis" class="btn-primary btn-small">🎯 Ось</button>
+                <button id="editorRotateLeft" class="btn-secondary btn-small">↩️ -90°</button>
+                <button id="editorRotateRight" class="btn-secondary btn-small">↪️ +90°</button>
+                <button id="editorRemoveBg" class="btn-secondary btn-small">✨ Фон</button>
+            </div>
+            
+            <div style="margin: 0.75rem 0; padding: 0.75rem; background: #f9fafb; border-radius: 8px;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;">🔄 Ручной поворот</label>
+                <input type="range" id="editorRotateSlider" min="-180" max="180" value="0" step="1" style="width: 100%;">
+                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; gap: 0.5rem; flex-wrap: wrap;">
+                    <span id="editorRotateValue" style="font-size: 12px; color: #666;">0°</span>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="editorApplyRotate" class="btn-primary btn-small" style="padding: 4px 12px;">Применить</button>
+                        <button id="editorResetRotate" class="btn-secondary btn-small" style="padding: 4px 12px;">Сброс</button>
+                    </div>
+                </div>
+                <small style="font-size: 11px;">Поверните вручную, затем "Применить"</small>
+            </div>
+            
+            <div class="form-actions">
+                <button id="editorSaveBtn" class="btn-primary">💾 Сохранить</button>
+                <button id="editorCancelBtn" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/core/utils.js"></script>
     <script src="/js/core/api.js"></script>
     <script src="/js/core/auth.js"></script>
     <script src="/js/modules/tags.js"></script>
+    <script src="/js/modules/photo-editor.js"></script>
     <script src="/js/pages/edit-badge.js"></script>
 </body>
 </html>

@@ -89,9 +89,9 @@ async function editPhoto(photoId) {
         const blob = await res.blob();
         const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
         
-        openPhotoEditor(file, async (editedFile, badgeId, photoId) => {
-            const oldPhoto = badge.photos?.find(p => p.id == photoId);
-            const wasMain = oldPhoto?.is_main || false;
+        // Исправлено: колбэк принимает только один аргумент (editedFile)
+        openPhotoEditor(file, async (editedFile) => {
+            const wasMain = photo.is_main || false;
             
             await deletePhotoFromBadge(badgeId, photoId);
             
@@ -104,9 +104,10 @@ async function editPhoto(photoId) {
             }
             
             loadBadgeDetail();
-        }, badgeId, photoId);
+        });
         
     } catch (error) {
+        console.error('Error editing photo:', error);
         alert('Ошибка: ' + error.message);
     }
 }
@@ -114,18 +115,23 @@ async function editPhoto(photoId) {
 async function addPhoto(file) {
     if (!file) return;
     
-    const currentBadge = await getBadge(badgeId);
-    if (currentBadge.photos && currentBadge.photos.length >= 5) {
-        alert('Максимум 5 фотографий на значок');
-        return;
+    try {
+        const currentBadge = await getBadge(badgeId);
+        if (currentBadge.photos && currentBadge.photos.length >= 5) {
+            alert('Максимум 5 фотографий на значок');
+            return;
+        }
+        
+        openPhotoEditor(file, async (editedFile) => {
+            const fd = new FormData();
+            fd.append('photo', editedFile);
+            await addBadgePhoto(badgeId, fd);
+            loadBadgeDetail();
+        });
+    } catch (error) {
+        console.error('Error adding photo:', error);
+        alert('Ошибка: ' + error.message);
     }
-    
-    openPhotoEditor(file, async (editedFile, badgeId) => {
-        const fd = new FormData();
-        fd.append('photo', editedFile);
-        await addBadgePhoto(badgeId, fd);
-        loadBadgeDetail();
-    }, badgeId);
 }
 
 function renderBadgeDetail(badge) {
@@ -194,14 +200,14 @@ function renderBadgeDetail(badge) {
     
     document.getElementById('badgeDetail').innerHTML = html;
     
-    document.getElementById('deleteBtn').addEventListener('click', async () => {
+    document.getElementById('deleteBtn')?.addEventListener('click', async () => {
         if (confirm('Удалить этот значок?')) {
             await deleteBadge(badgeId);
             window.location.href = 'index.html';
         }
     });
     
-    document.getElementById('editBtn').addEventListener('click', () => {
+    document.getElementById('editBtn')?.addEventListener('click', () => {
         window.location.href = `/html/badges/edit-badge.html?id=${badgeId}`;
     });
 }

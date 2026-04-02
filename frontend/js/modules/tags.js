@@ -6,6 +6,7 @@ class TagsAutocomplete {
         this.allTags = [];
         this.suggestionsDiv = null;
         this.input = null;
+        this.chipsContainer = null;
         this.init();
     }
     
@@ -36,12 +37,12 @@ class TagsAutocomplete {
         const wrapper = document.createElement('div');
         wrapper.className = 'tags-input-wrapper';
         
-        const chipsContainer = document.createElement('div');
-        chipsContainer.className = 'tags-chips';
+        this.chipsContainer = document.createElement('div');
+        this.chipsContainer.className = 'tags-chips';
         
         this.tags.forEach(tag => {
             const chip = this.createChip(tag);
-            chipsContainer.appendChild(chip);
+            this.chipsContainer.appendChild(chip);
         });
         
         const input = document.createElement('input');
@@ -50,45 +51,65 @@ class TagsAutocomplete {
         input.className = 'tags-input';
         input.placeholder = 'Введите тег...';
         input.autocomplete = 'off';
+        this.input = input;
         
         this.suggestionsDiv = document.createElement('div');
         this.suggestionsDiv.className = 'tags-suggestions';
         this.suggestionsDiv.style.display = 'none';
         
-        wrapper.appendChild(chipsContainer);
+        wrapper.appendChild(this.chipsContainer);
         wrapper.appendChild(input);
         wrapper.appendChild(this.suggestionsDiv);
         container.appendChild(wrapper);
         
-        this.input = input;
-        this.chipsContainer = chipsContainer;
+        this.attachInputEvents();
     }
     
     createChip(tag) {
         const chip = document.createElement('span');
         chip.className = 'tag-chip';
-        chip.innerHTML = `${escapeHtml(tag)} <span class="tag-chip-remove" data-tag="${escapeHtml(tag)}">×</span>`;
         
-        const removeBtn = chip.querySelector('.tag-chip-remove');
-        removeBtn.addEventListener('click', (e) => {
+        const textSpan = document.createElement('span');
+        textSpan.textContent = tag;
+        
+        const removeSpan = document.createElement('span');
+        removeSpan.className = 'tag-chip-remove';
+        removeSpan.textContent = '×';
+        removeSpan.setAttribute('data-tag', tag);
+        
+        // Критично: preventDefault + stopPropagation
+        removeSpan.addEventListener('click', (e) => {
+            e.preventDefault();
             e.stopPropagation();
             this.removeTag(tag);
         });
         
+        chip.appendChild(textSpan);
+        chip.appendChild(removeSpan);
+        
         return chip;
     }
     
-    attachEvents() {
-        if (!this.input) return;
-        
+    attachInputEvents() {
         this.input.addEventListener('input', (e) => this.onInput(e));
         this.input.addEventListener('keydown', (e) => this.onKeyDown(e));
-        this.input.addEventListener('focus', () => this.input.value = '');
+        this.input.addEventListener('focus', () => {
+            this.input.value = '';
+            this.hideSuggestions();
+        });
+        
+        // Закрытие подсказок при клике вне
         document.addEventListener('click', (e) => {
-            if (this.suggestionsDiv && !this.suggestionsDiv.contains(e.target) && e.target !== this.input) {
+            if (this.suggestionsDiv && 
+                !this.suggestionsDiv.contains(e.target) && 
+                e.target !== this.input) {
                 this.hideSuggestions();
             }
         });
+    }
+    
+    attachEvents() {
+        // Метод оставлен для совместимости
     }
     
     async onInput(e) {
@@ -115,24 +136,27 @@ class TagsAutocomplete {
             return;
         }
         
-        this.suggestionsDiv.innerHTML = suggestions.map(tag => `
-            <div class="suggestion-item" data-tag="${escapeHtml(tag.name)}">
-                ${escapeHtml(tag.name)}
-            </div>
-        `).join('');
+        this.suggestionsDiv.innerHTML = '';
         
-        this.suggestionsDiv.style.display = 'block';
-        
-        this.suggestionsDiv.querySelectorAll('.suggestion-item').forEach(item => {
+        suggestions.forEach(tag => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+            item.textContent = tag.name;
+            item.setAttribute('data-tag', tag.name);
+            
             item.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                const tag = item.dataset.tag;
-                this.addTag(tag);
+                this.addTag(tag.name);
                 this.input.value = '';
                 this.hideSuggestions();
                 this.input.focus();
             });
+            
+            this.suggestionsDiv.appendChild(item);
         });
+        
+        this.suggestionsDiv.style.display = 'block';
     }
     
     hideSuggestions() {
@@ -142,24 +166,32 @@ class TagsAutocomplete {
     }
     
     onKeyDown(e) {
+        // Критично: полная блокировка всплытия Enter
         if (e.key === 'Enter') {
             e.preventDefault();
+            e.stopPropagation();
+            
             const newTag = this.input.value.trim();
             if (newTag) {
                 this.addTag(newTag);
                 this.input.value = '';
                 this.hideSuggestions();
             }
-        } else if (e.key === 'Backspace' && this.input.value === '' && this.tags.length > 0) {
+            return false;
+        }
+        
+        // Backspace для удаления последнего тега
+        if (e.key === 'Backspace' && this.input.value === '' && this.tags.length > 0) {
+            e.preventDefault();
             this.removeTag(this.tags[this.tags.length - 1]);
         }
     }
     
     addTag(tag) {
         tag = tag.trim().toLowerCase();
-        if (tag && !this.tags.includes(tag) && this.tags.length < 10) {
+        if (tag && !this.tags.includes(tag) && this.tags.length < 10 && tag.length <= 50) {
             this.tags.push(tag);
-            this.render();
+            this.render(); // Перерисовываем полностью
             if (this.input) this.input.focus();
         }
     }

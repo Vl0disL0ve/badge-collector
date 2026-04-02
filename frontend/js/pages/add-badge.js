@@ -1,16 +1,18 @@
 // pages/add-badge.js
+let tagsAutocomplete = null;
+let isSaving = false;
+let currentSetId = null;
+
+// Получаем set_id из URL если есть
 const urlParams = new URLSearchParams(window.location.search);
 const presetSetId = urlParams.get('set_id');
-
-let photoFiles = [];
-let currentEditIndex = 0;
-let mainPhotoIndex = 0;
-let tagsAutocomplete = null;
 
 async function loadSets() {
     try {
         const sets = await getSets();
         const select = document.getElementById('set_id');
+        if (!select) return;
+        
         select.innerHTML = '<option value="">Выберите набор</option>';
         sets.forEach(set => {
             const option = document.createElement('option');
@@ -18,161 +20,183 @@ async function loadSets() {
             option.textContent = `${set.name} (${set.collected_count || 0}/${set.total_count})`;
             select.appendChild(option);
         });
-        if (presetSetId) select.value = presetSetId;
+        
+        // Если есть presetSetId, выбираем его
+        if (presetSetId) {
+            select.value = presetSetId;
+            currentSetId = presetSetId;
+        }
     } catch (error) {
+        console.error('Error loading sets:', error);
         showError('Не удалось загрузить наборы');
     }
 }
 
 function initTagsAutocomplete() {
+    const container = document.getElementById('tagsContainer');
+    if (!container) {
+        console.error('tagsContainer not found');
+        return;
+    }
+    
+    // Убедимся, что контейнер пуст
+    container.innerHTML = '';
+    
     tagsAutocomplete = new TagsAutocomplete('tagInput', 'tagsContainer', []);
 }
 
-function updateGallery() {
+// Глобальная переменная для файлов
+let selectedFiles = [];
+
+function renderPhotoGallery() {
     const gallery = document.getElementById('photoGallery');
     if (!gallery) return;
     
     gallery.innerHTML = '';
     
-    if (photoFiles.length === 0) {
-        gallery.innerHTML = '<div style="color:#999; padding:10px;">Нет выбранных фото</div>';
-        return;
-    }
-    
-    photoFiles.forEach((file, idx) => {
-        const url = URL.createObjectURL(file);
-        const isMain = (idx === mainPhotoIndex);
-        const isActive = (idx === currentEditIndex);
-        
+    selectedFiles.forEach((file, idx) => {
         const div = document.createElement('div');
-        div.className = 'gallery-item' + (isActive ? ' active' : '');
-        div.innerHTML = `
-            <img src="${url}" alt="Фото ${idx+1}">
-            <div class="gallery-badge ${isMain ? 'main' : ''}">${isMain ? '⭐' : (idx+1)}</div>
-            <div class="gallery-overlay">
-                <button class="edit-photo" data-idx="${idx}">✏️</button>
-                <button class="set-main" data-idx="${idx}">★</button>
-                <button class="remove-photo" data-idx="${idx}">🗑️</button>
-            </div>
-        `;
+        div.className = 'gallery-item';
         
-        div.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('edit-photo') && 
-                !e.target.classList.contains('set-main') && 
-                !e.target.classList.contains('remove-photo')) {
-                currentEditIndex = idx;
-                updateGallery();
-            }
-        });
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
         
-        const editBtn = div.querySelector('.edit-photo');
-        if (editBtn) {
-            editBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openPhotoEditor(photoFiles[idx], async (editedFile) => {
-                    photoFiles[idx] = editedFile;
-                    updateGallery();
-                    const dataTransfer = new DataTransfer();
-                    photoFiles.forEach(f => dataTransfer.items.add(f));
-                    document.getElementById('photos').files = dataTransfer.files;
-                    showSuccess('Фото отредактировано', 'successMsg');
-                });
+        const badge = document.createElement('div');
+        badge.className = 'gallery-badge';
+        badge.textContent = idx === 0 ? '⭐ Главное' : `${idx + 1}`;
+        if (idx === 0) badge.classList.add('main');
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'gallery-overlay';
+        
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '✏️';
+        editBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openPhotoEditor(file, async (editedFile) => {
+                selectedFiles[idx] = editedFile;
+                renderPhotoGallery();
+                showSuccess('Фото отредактировано', 'successMsg');
             });
-        }
+        };
         
-        const setMainBtn = div.querySelector('.set-main');
-        if (setMainBtn) {
-            setMainBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                mainPhotoIndex = idx;
-                updateGallery();
-                showSuccess('Главное фото обновлено', 'successMsg');
-            });
-        }
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '🗑️';
+        removeBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            selectedFiles.splice(idx, 1);
+            renderPhotoGallery();
+        };
         
-        const removeBtn = div.querySelector('.remove-photo');
-        if (removeBtn) {
-            removeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                photoFiles.splice(idx, 1);
-                if (mainPhotoIndex >= photoFiles.length) mainPhotoIndex = Math.max(0, photoFiles.length - 1);
-                if (currentEditIndex >= photoFiles.length) currentEditIndex = Math.max(0, photoFiles.length - 1);
-                updateGallery();
-                
-                const dataTransfer = new DataTransfer();
-                photoFiles.forEach(f => dataTransfer.items.add(f));
-                document.getElementById('photos').files = dataTransfer.files;
-            });
-        }
+        overlay.appendChild(editBtn);
+        overlay.appendChild(removeBtn);
+        
+        div.appendChild(img);
+        div.appendChild(badge);
+        div.appendChild(overlay);
         
         gallery.appendChild(div);
     });
 }
 
-// Обработчик загрузки фото
-document.getElementById('photos')?.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files);
-    if (photoFiles.length + files.length > 5) {
-        showError('Можно загрузить не более 5 фотографий');
-        return;
-    }
-    photoFiles.push(...files);
-    updateGallery();
-});
-
-// Отправка формы
-document.getElementById('badgeForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('name', document.getElementById('name').value);
-    
-    const description = document.getElementById('description').value;
-    if (description) formData.append('description', description);
-    
-    const year = document.getElementById('year').value;
-    if (year) formData.append('year', year);
-    
-    const material = document.getElementById('material').value;
-    if (material) formData.append('material', material);
-    
-    const condition = document.getElementById('condition').value;
-    if (condition) formData.append('condition', condition);
-    
-    const setId = document.getElementById('set_id').value;
-    if (!setId) { showError('Выберите набор'); return; }
-    formData.append('set_id', setId);
-    
-    const tags = tagsAutocomplete ? tagsAutocomplete.getTags() : [];
-    if (tags.length) {
-        formData.append('tags', JSON.stringify(tags));
-    }
-    
-    if (photoFiles.length === 0) { showError('Добавьте хотя бы одно фото'); return; }
-    
-    // Переупорядочиваем фото: главное первым
-    const orderedPhotos = [...photoFiles];
-    if (mainPhotoIndex !== 0) {
-        const mainPhoto = orderedPhotos[mainPhotoIndex];
-        orderedPhotos.splice(mainPhotoIndex, 1);
-        orderedPhotos.unshift(mainPhoto);
-    }
-    
-    for (let i = 0; i < orderedPhotos.length; i++) {
-        formData.append('photos', orderedPhotos[i]);
-    }
-    
-    try {
-        const badge = await createBadge(formData);
-        showSuccess('✅ Значок добавлен!', 'successMsg');
-        setTimeout(() => window.location.href = `/html/collection/badge-detail.html?id=${badge.id}`, 1500);
-    } catch (error) {
-        showError(error.message);
-    }
-});
-
-// Инициализация
-checkAuth().then(() => {
-    loadSets();
+// Инициализация после загрузки страницы
+document.addEventListener('DOMContentLoaded', () => {
+    // Инициализируем теги
     initTagsAutocomplete();
+    
+    // Загружаем наборы
+    loadSets();
+    
+    // Обработчик выбора файлов
+    const photoInput = document.getElementById('photos');
+    if (photoInput) {
+        photoInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            const totalFiles = selectedFiles.length + files.length;
+            
+            if (totalFiles > 5) {
+                showError('Максимум 5 фотографий');
+                photoInput.value = '';
+                return;
+            }
+            
+            selectedFiles.push(...files);
+            renderPhotoGallery();
+            photoInput.value = '';
+        });
+    }
+    
+    // Обработчик формы
+    const form = document.getElementById('badgeForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (isSaving) return;
+            
+            const name = document.getElementById('name').value.trim();
+            if (!name) {
+                showError('Введите название значка');
+                return;
+            }
+            
+            const setId = document.getElementById('set_id').value;
+            if (!setId) {
+                showError('Выберите набор');
+                return;
+            }
+            
+            if (selectedFiles.length === 0) {
+                showError('Добавьте хотя бы одну фотографию');
+                return;
+            }
+            
+            isSaving = true;
+            
+            const fd = new FormData();
+            fd.append('name', name);
+            
+            const description = document.getElementById('description').value;
+            if (description) fd.append('description', description);
+            
+            const year = document.getElementById('year').value;
+            if (year) fd.append('year', year);
+            
+            const material = document.getElementById('material').value;
+            if (material) fd.append('material', material);
+            
+            const condition = document.getElementById('condition').value;
+            if (condition) fd.append('condition', condition);
+            
+            fd.append('set_id', setId);
+            
+            // Получаем теги
+            const tags = tagsAutocomplete ? tagsAutocomplete.getTags() : [];
+            if (tags.length) {
+                fd.append('tags', JSON.stringify(tags));
+            }
+            
+            // Добавляем фото
+            selectedFiles.forEach(file => {
+                fd.append('photos', file);
+            });
+            
+            try {
+                const result = await createBadge(fd);
+                showSuccess('✅ Значок успешно создан!', 'successMsg');
+                setTimeout(() => {
+                    window.location.href = `/html/collection/badge-detail.html?id=${result.id}`;
+                }, 1500);
+            } catch (error) {
+                console.error('Create badge error:', error);
+                showError(error.message);
+                isSaving = false;
+            }
+        });
+    }
 });
+
+// Проверка авторизации
+checkAuth();
