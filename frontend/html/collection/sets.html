@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Наборы — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/collection.css">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+        }
+        .categories-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+            padding: 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            min-height: 80px;
+        }
+        .category-chip {
+            background: #e0e7ff;
+            color: #4f46e5;
+            padding: 4px 8px;
+            border-radius: 16px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .category-chip .remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .available-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .category-option {
+            background: #f3f4f6;
+            padding: 4px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .category-option:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .detection-section {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        .canvas-container {
+            text-align: center;
+        }
+        .rect-canvas {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+        .badge-list {
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .badge-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .badge-item input {
+            flex: 1;
+            margin: 0 8px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .badge-item button {
+            padding: 4px 8px;
+            font-size: 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .status {
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        .status-info { background: #e0e7ff; color: #4f46e5; }
+        .status-error { background: #fee2e2; color: #dc2626; }
+        .status-success { background: #dcfce7; color: #16a34a; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html">📁 Категории</a>
+                <a href="sets.html" class="active">📦 Наборы</a>
+                <a href="/html/badges/add-badge.html">➕ Добавить значок</a>
+                <a href="/html/user/profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container">
+            <h2>➕ Создать набор</h2>
+            <div id="createError" class="error-message" style="display: none;"></div>
+            <div id="createSuccess" class="success-message" style="display: none;"></div>
+            
+            <form id="createSetForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Название набора *</label>
+                    <input type="text" id="setName" required maxlength="150">
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="setDescription" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Всего значков *</label>
+                        <input type="number" id="totalCount" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Фото набора (JPEG/PNG)</label>
+                        <input type="file" id="setPhoto" accept="image/jpeg,image/png">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>📁 Категории</label>
+                    <div id="selectedCategories" class="categories-select"></div>
+                    <div id="availableCategories" class="available-categories"></div>
+                </div>
+                
+                <div id="detectionSection" class="detection-section" style="display: none;">
+                    <div id="detectionStatus" class="status status-info">⏳ Загрузка...</div>
+                    <div class="canvas-container">
+                        <canvas id="rectCanvas" class="rect-canvas"></canvas>
+                    </div>
+                    <div id="badgeList" class="badge-list"></div>
+                    <div class="form-actions" style="margin-top: 1rem;">
+                        <button type="button" id="saveDetectedBtn" class="btn-primary">💾 Сохранить все значки в набор</button>
+                    </div>
+                </div>
+                
+                <div class="form-actions" style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary">💾 Создать набор</button>
+                    <button type="button" class="btn-secondary" onclick="window.location.href='sets.html'">Отмена</button>
+                </div>
+            </form>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <h2>📦 Мои наборы</h2>
+            <div id="setsGrid" class="badges-grid">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </div>
+    </main>
+
+    <div id="editSetModal" class="modal">
+        <div class="modal-content">
+            <h3>✏️ Редактировать набор</h3>
+            <div id="modalError" class="error-message" style="display: none;"></div>
+            <form id="editSetForm">
+                <div class="form-group"><label>Название</label><input type="text" id="editSetName" required></div>
+                <div class="form-group"><label>Описание</label><textarea id="editSetDescription" rows="2"></textarea></div>
+                <div class="form-group"><label>Всего значков</label><input type="number" id="editSetTotal" min="0"></div>
+                <div class="form-group">
+                    <label>📁 Категории</label>
+                    <div id="editSelectedCategories" class="categories-select"></div>
+                    <div id="editAvailableCategories" class="available-categories"></div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                    <button type="button" class="btn-secondary" onclick="closeEditModal()">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/core/utils.js"></script>
+    <script src="/js/core/api.js"></script>
+    <script src="/js/core/auth.js"></script>
+    <script src="/js/pages/sets.js"></script>
+</body>
+</html>

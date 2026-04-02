@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads
+backend/uploads/
+*.jpg
+*.jpeg
+*.png
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+config/.env
+.env
+
+# Temporary files
+*.tmp
+temp_*
+rotated_*
+nobg_*
+auto_*
+rot_*
+
+# Logs
+*.log

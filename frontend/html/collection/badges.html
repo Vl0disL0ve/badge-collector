@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Значки набора — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/collection.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html">📁 Категории</a>
+                <a href="sets.html">📦 Наборы</a>
+                <a href="/html/badges/add-badge.html">➕ Добавить значок</a>
+                <a href="/html/user/profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="setInfo" style="margin-bottom: 1rem;">
+            <a href="javascript:history.back()" class="btn-secondary" style="display: inline-block; width: auto;">← Назад</a>
+        </div>
+        
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="🔍 Поиск по названию...">
+            <select id="conditionFilter">
+                <option value="">⭐ Все состояния</option>
+                <option value="excellent">Отличное</option>
+                <option value="good">Хорошее</option>
+                <option value="average">Среднее</option>
+                <option value="poor">Плохое</option>
+            </select>
+            <button id="resetFiltersBtn" class="btn-secondary">Сбросить</button>
+            <a id="addBadgeBtn" href="#" class="btn-primary" style="text-decoration: none; width: auto;">➕ Добавить значок</a>
+        </div>
+
+        <div id="badgesGrid" class="badges-grid">
+            <div class="loading">Загрузка...</div>
+        </div>
+
+        <div id="pagination" class="pagination"></div>
+    </main>
+
+    <script src="/js/core/utils.js"></script>
+    <script src="/js/core/api.js"></script>
+    <script src="/js/core/auth.js"></script>
+    <script src="/js/modules/tags.js"></script>
+    <script src="/js/pages/badges.js"></script>
+</body>
+</html>

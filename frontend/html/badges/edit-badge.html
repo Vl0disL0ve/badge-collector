@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактировать значок — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/badges.css">
+    <style>
+        .photo-gallery { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px; }
+        .gallery-item { position: relative; width: 100px; height: 100px; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid #e5e7eb; transition: all 0.2s; }
+        .gallery-item.active { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.3); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+        .gallery-badge { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); border-radius: 20px; padding: 2px 6px; font-size: 12px; color: white; }
+        .gallery-badge.main { background: #f59e0b; color: white; }
+        .gallery-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; gap: 8px; padding: 4px; }
+        .gallery-overlay button { background: none; border: none; color: white; cursor: pointer; font-size: 12px; }
+        .gallery-overlay button:hover { color: #f59e0b; }
+        .form-actions { display: flex; gap: 15px; margin-top: 20px; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="/html/collection/index.html">📚 Каталог</a>
+                <a href="/html/collection/categories.html">📁 Категории</a>
+                <a href="add-badge.html">➕ Добавить значок</a>
+                <a href="/html/user/profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container">
+            <h2>✏️ Редактировать значок</h2>
+            <div id="errorMsg" class="error-message" style="display: none;"></div>
+            <div id="successMsg" class="success-message" style="display: none;"></div>
+            
+            <form id="badgeForm">
+                <div class="form-group">
+                    <label>Название *</label>
+                    <input type="text" id="name" required maxlength="200">
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="description" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Год выпуска</label>
+                        <input type="number" id="year" min="1800" max="2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Материал</label>
+                        <input type="text" id="material" maxlength="100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Состояние</label>
+                    <select id="condition">
+                        <option value="">Не указано</option>
+                        <option value="excellent">Отличное</option>
+                        <option value="good">Хорошее</option>
+                        <option value="average">Среднее</option>
+                        <option value="poor">Плохое</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Набор *</label>
+                    <select id="set_id" required></select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Теги</label>
+                    <div id="tagsContainer"></div>
+                    <small>Введите тег и нажмите Enter. Можно выбрать из предложенных.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>📸 Добавить новые фотографии</label>
+                    <input type="file" id="newPhotos" accept="image/jpeg,image/png" multiple>
+                    <small>Можно добавить до 5 фотографий (всего не более 5)</small>
+                </div>
+                
+                <h3>Существующие фото</h3>
+                <div id="existingPhotosGallery" class="photo-gallery">Загрузка...</div>
+                <h3>Новые фото</h3>
+                <div id="newPhotosGallery" class="photo-gallery"></div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Сохранить значок</button>
+                    <button type="button" class="btn-secondary" onclick="history.back()">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/core/utils.js"></script>
+    <script src="/js/core/api.js"></script>
+    <script src="/js/core/auth.js"></script>
+    <script src="/js/modules/tags.js"></script>
+    <script src="/js/pages/edit-badge.js"></script>
+</body>
+</html>

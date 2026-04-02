@@ -1,0 +1,156 @@
+/* ===== BADGES PAGES ===== */
+
+/* PHOTO GALLERY */
+.photo-gallery {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.gallery-item {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid #e5e7eb;
+    transition: all 0.2s;
+}
+
+.gallery-item.active {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102,126,234,0.3);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gallery-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 20px;
+    padding: 2px 6px;
+    font-size: 12px;
+    color: white;
+}
+
+.gallery-badge.main {
+    background: #f59e0b;
+    color: white;
+}
+
+.gallery-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px;
+}
+
+.gallery-overlay button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 8px;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.gallery-overlay button:hover {
+    color: #f59e0b;
+}
+
+/* EDITOR TOOLS */
+.editor-tools {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+    justify-content: center;
+}
+
+/* TAGS */
+.tags-input-wrapper {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px;
+    background: white;
+    position: relative;
+}
+
+.tags-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #e0e7ff;
+    color: #4f46e5;
+    padding: 4px 8px;
+    border-radius: 16px;
+    font-size: 12px;
+}
+
+.tag-chip-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    color: #4f46e5;
+    padding: 0 2px;
+}
+
+.tag-chip-remove:hover {
+    color: #ef4444;
+}
+
+.tags-input {
+    width: 100%;
+    padding: 8px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+}
+
+.tags-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.suggestion-item:hover {
+    background: #f3f4f6;
+}

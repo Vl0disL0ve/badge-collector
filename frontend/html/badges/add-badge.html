@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить значок — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/badges.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="/html/collection/index.html">📚 Каталог</a>
+                <a href="/html/collection/categories.html">📁 Категории</a>
+                <a href="/html/collection/sets.html">📦 Наборы</a>
+                <a href="add-badge.html" class="active">➕ Добавить значок</a>
+                <a href="/html/user/profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container">
+            <h2>➕ Добавить значок</h2>
+            <div id="errorMsg" class="error-message" style="display: none;"></div>
+            <div id="successMsg" class="success-message" style="display: none;"></div>
+            
+            <form id="badgeForm">
+                <div class="form-group">
+                    <label>Название *</label>
+                    <input type="text" id="name" required maxlength="200">
+                </div>
+                
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="description" rows="3"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Год выпуска</label>
+                        <input type="number" id="year" min="1800" max="2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Материал</label>
+                        <input type="text" id="material" maxlength="100">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Состояние</label>
+                    <select id="condition">
+                        <option value="">Не указано</option>
+                        <option value="excellent">Отличное</option>
+                        <option value="good">Хорошее</option>
+                        <option value="average">Среднее</option>
+                        <option value="poor">Плохое</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Набор *</label>
+                    <select id="set_id" required>
+                        <option value="">Выберите набор</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Теги</label>
+                    <div id="tagsContainer"></div>
+                    <small>Введите тег и нажмите Enter. Можно выбрать из предложенных.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Фотографии * (до 5 шт, JPEG/PNG, до 10 МБ)</label>
+                    <input type="file" id="photos" accept="image/jpeg,image/png" multiple>
+                    <small>Первое фото станет главным. Минимальный размер: 100x100 пикселей</small>
+                </div>
+                
+                <div id="photoGallery" class="photo-gallery"></div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Сохранить значок</button>
+                    <button type="button" class="btn-secondary" onclick="window.location.href='/html/collection/index.html'">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Модальное окно редактора фото -->
+    <div id="photoEditorModal" class="modal">
+        <div class="modal-content" style="max-width: 650px;">
+            <h3>📸 Редактирование фото</h3>
+            <div id="editorError" class="error-message" style="display: none;"></div>
+            <div id="editorSuccess" class="success-message" style="display: none;"></div>
+            
+            <div style="text-align: center;">
+                <img id="editorPreview" style="max-width: 100%; max-height: 300px; border-radius: 8px; margin: 1rem 0;">
+            </div>
+            
+            <div class="editor-tools" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 1rem 0;">
+                <button id="editorAutoRotate" class="btn-primary btn-small">🔄 Автовыравнивание</button>
+                <button id="editorDetectAxis" class="btn-primary btn-small">🎯 Определить ось</button>
+                <button id="editorRotateLeft" class="btn-secondary btn-small">↩️ -90°</button>
+                <button id="editorRotateRight" class="btn-secondary btn-small">↪️ +90°</button>
+                <button id="editorRemoveBg" class="btn-secondary btn-small">✨ Удалить фон</button>
+            </div>
+            
+            <!-- Слайдер для ручного поворота -->
+            <div style="margin: 1rem 0; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">🔄 Ручной поворот</label>
+                <input type="range" id="editorRotateSlider" min="-180" max="180" value="0" step="1" style="width: 100%;">
+                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+                    <span id="editorRotateValue" style="font-size: 12px; color: #666;">0°</span>
+                    <button id="editorApplyRotate" class="btn-primary btn-small" style="padding: 4px 12px;">Применить поворот</button>
+                    <button id="editorResetRotate" class="btn-secondary btn-small" style="padding: 4px 12px;">Сбросить</button>
+                </div>
+                <small>Поверните изображение вручную, затем нажмите "Применить"</small>
+            </div>
+            
+            <div class="form-actions">
+                <button id="editorSaveBtn" class="btn-primary">💾 Сохранить</button>
+                <button id="editorCancelBtn" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/core/utils.js"></script>
+    <script src="/js/core/api.js"></script>
+    <script src="/js/core/auth.js"></script>
+    <script src="/js/modules/tags.js"></script>
+    <script src="/js/modules/photo-editor.js"></script>
+    <script src="/js/pages/add-badge.js"></script>
+</body>
+</html>

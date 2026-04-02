@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/profile.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="/html/collection/index.html">📚 Каталог</a>
+                <a href="/html/collection/categories.html">📁 Категории</a>
+                <a href="/html/badges/add-badge.html">➕ Добавить значок</a>
+                <a href="profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container">
+            <h2>👑 Административная панель</h2>
+            <div id="accessError" class="error-message" style="display: none;">⚠️ У вас нет прав администратора</div>
+            <div id="adminContent" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number" id="totalUsers">—</div><div class="stat-label">Пользователей</div></div>
+                    <div class="stat-card"><div class="stat-number" id="totalBadges">—</div><div class="stat-label">Значков</div></div>
+                    <div class="stat-card"><div class="stat-number" id="totalSets">—</div><div class="stat-label">Наборов</div></div>
+                    <div class="stat-card"><div class="stat-number" id="totalCategories">—</div><div class="stat-label">Категорий</div></div>
+                </div>
+                
+                <h3>📊 Регистрации пользователей</h3>
+                <canvas id="registrationsChart" style="max-height: 300px; margin-bottom: 2rem;"></canvas>
+                
+                <h3>👥 Управление пользователями</h3>
+                <div class="filters" style="margin-bottom: 1rem;">
+                    <input type="text" id="userSearch" placeholder="🔍 Поиск по email...">
+                    <button id="addUserBtn" class="btn-primary" style="width: auto;">➕ Добавить пользователя</button>
+                </div>
+                <div id="usersTable" style="overflow-x: auto;"><div class="loading">Загрузка...</div></div>
+                
+                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 2px solid #e5e7eb;">
+                    <h3>🧠 Нейросеть и векторы</h3>
+                    <div class="form-row">
+                        <button id="recalcFeaturesBtn" class="btn-primary">🔄 Пересчитать векторы всех значков</button>
+                        <button id="recalcMyFeaturesBtn" class="btn-secondary">📊 Пересчитать только мои значки</button>
+                    </div>
+                    <small>Пересчёт векторов нужен для поиска похожих значков. Может занять время при большом количестве фото.</small>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <h3>➕ Добавить пользователя</h3>
+            <div id="modalError" class="error-message" style="display: none;"></div>
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="newUserEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Пароль (мин. 6 символов)</label>
+                    <input type="password" id="newUserPassword" required minlength="6">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Создать</button>
+                    <button type="button" id="closeModalBtn" class="btn-secondary">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/core/utils.js"></script>
+    <script src="/js/core/api.js"></script>
+    <script src="/js/core/auth.js"></script>
+    <script src="/js/pages/admin.js"></script>
+</body>
+</html>

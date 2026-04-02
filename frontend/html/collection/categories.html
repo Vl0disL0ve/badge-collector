@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Категории — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/collection.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="index.html">📚 Каталог</a>
+                <a href="categories.html" class="active">📁 Категории</a>
+                <a href="sets.html">📦 Наборы</a>
+                <a href="/html/badges/add-badge.html">➕ Добавить значок</a>
+                <a href="/html/user/profile.html">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container" style="margin-bottom: 2rem;">
+            <h2>➕ Создать категорию</h2>
+            <div id="createError" class="error-message" style="display: none;"></div>
+            <div id="createSuccess" class="success-message" style="display: none;"></div>
+            <form id="createCategoryForm">
+                <div class="form-group">
+                    <label>Название категории</label>
+                    <input type="text" id="categoryName" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label>Описание (необязательно)</label>
+                    <textarea id="categoryDescription" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Создать категорию</button>
+            </form>
+        </div>
+
+        <div>
+            <h2>📁 Мои категории</h2>
+            <div id="categoriesGrid" class="badges-grid">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модалка редактирования -->
+    <div id="editCategoryModal" class="modal">
+        <div class="modal-content">
+            <h3>✏️ Редактировать категорию</h3>
+            <div id="modalError" class="error-message" style="display: none;"></div>
+            <form id="editCategoryForm">
+                <div class="form-group">
+                    <label>Название</label>
+                    <input type="text" id="editCategoryName" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="editCategoryDescription" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                    <button type="button" class="btn-secondary" onclick="closeEditModal()">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/core/utils.js"></script>
+    <script src="/js/core/api.js"></script>
+    <script src="/js/core/auth.js"></script>
+    <script src="/js/pages/categories.js"></script>
+</body>
+</html>

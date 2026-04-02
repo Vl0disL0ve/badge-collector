@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль — Альбом коллекционера</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/profile.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📛 Альбом коллекционера</h1>
+            <nav>
+                <a href="/html/collection/index.html">📚 Каталог</a>
+                <a href="/html/collection/categories.html">📁 Категории</a>
+                <a href="/html/badges/add-badge.html">➕ Добавить значок</a>
+                <a href="profile.html" class="active">👤 Профиль</a>
+                <a href="#" id="logoutBtn">🚪 Выйти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container">
+            <h2>👤 Мой профиль</h2>
+            
+            <div id="stats" class="stats-grid">
+                <div class="stat-card"><div class="stat-number" id="statsCategories">—</div><div class="stat-label">Категорий</div></div>
+                <div class="stat-card"><div class="stat-number" id="statsSets">—</div><div class="stat-label">Наборов</div></div>
+                <div class="stat-card"><div class="stat-number" id="statsBadges">—</div><div class="stat-label">Значков</div></div>
+                <div class="stat-card"><div class="stat-number" id="statsTags">—</div><div class="stat-label">Тегов</div></div>
+            </div>
+            
+            <div class="form-group">
+                <label>📧 Email</label>
+                <input type="email" id="userEmail" readonly disabled>
+            </div>
+            
+            <div class="form-group">
+                <label>📅 Дата регистрации</label>
+                <input type="text" id="userCreatedAt" readonly disabled>
+            </div>
+            
+            <hr style="margin: 2rem 0;">
+            
+            <h3>🤖 Привязка Telegram</h3>
+            <div id="telegramStatus" style="margin-bottom: 1rem;"></div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Telegram ID</label>
+                    <input type="text" id="telegramId" readonly disabled>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button id="generateCodeBtn" class="btn-primary">🔗 Привязать Telegram</button>
+                </div>
+            </div>
+            <div id="telegramCode" style="display: none; margin-top: 1rem; padding: 1rem; background: #f3f4f6; border-radius: 8px; text-align: center;">
+                <p>Ваш код для привязки:</p>
+                <code id="telegramCodeValue" style="font-size: 2rem; font-weight: bold;"></code>
+                <p>Введите этот код в Telegram-боте. Код действителен 15 минут.</p>
+            </div>
+            
+            <hr style="margin: 2rem 0;">
+            
+            <h3>📤 Экспорт коллекции</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Выберите набор для экспорта</label>
+                    <select id="exportSetId">
+                        <option value="">Все значки</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button id="exportBtn" class="btn-primary">📄 Экспорт в PDF</button>
+                </div>
+            </div>
+            
+            <div id="adminPanel" style="display: none; margin-top: 2rem;">
+                <hr style="margin: 2rem 0;">
+                <h3>👑 Админ-панель</h3>
+                <button id="adminBtn" class="btn-primary">🔧 Перейти в админ-панель</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/core/utils.js"></script>
+    <script src="/js/core/api.js"></script>
+    <script src="/js/core/auth.js"></script>
+    <script src="/js/pages/profile.js"></script>
+</body>
+</html>
